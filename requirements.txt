@@ -1,0 +1,30 @@
+# ---------------- Core Backend ----------------
+fastapi
+uvicorn
+pydantic
+python-multipart
+
+# ---------------- ML / Data ----------------
+numpy
+scikit-learn
+lightgbm
+joblib
+
+# ---------------- Explainability ----------------
+shap
+
+# ---------------- RAG / Retrieval ----------------
+faiss-cpu
+sentence-transformers
+
+# ---------------- LLM ----------------
+groq
+
+# ---------------- Config / Environment ----------------
+python-dotenv
+
+# ---------------- Dashboard ----------------
+streamlit
+
+# ---------------- HTTP ----------------
+requests

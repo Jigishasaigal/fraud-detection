@@ -1,0 +1,20 @@
+V14:
+Represents deviation from normal transaction behavior.
+Extreme negative values are strongly associated with fraudulent transactions,
+especially in card-not-present fraud.
+
+V12:
+Captures latent anomaly patterns in transaction flow.
+Large negative values often indicate abnormal usage inconsistent with past behavior.
+
+V4:
+Encodes non-linear transaction characteristics.
+Unusual values may reflect suspicious transaction timing or behavior patterns.
+
+Amount:
+Transaction amount alone is not a reliable fraud indicator.
+Both low-value and high-value transactions can be fraudulent depending on context.
+
+Time:
+Represents seconds elapsed between transactions.
+Time has limited standalone predictive power but can amplify risk when combined with other features.

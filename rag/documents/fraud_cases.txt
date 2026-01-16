@@ -1,0 +1,29 @@
+Case ID: F-001
+Pattern: Extreme negative V14 and V12 values
+Outcome: Confirmed fraud
+Action: Transaction blocked
+Notes: Pattern consistent with card-not-present fraud behavior.
+
+Case ID: F-002
+Pattern: Low transaction amount with strong V12 anomaly
+Outcome: Confirmed fraud
+Action: Transaction blocked
+Notes: Indicative of card testing attack.
+
+Case ID: F-003
+Pattern: Normal feature values across V14, V12, and V4
+Outcome: Legitimate transaction
+Action: Approved
+Notes: No anomaly indicators detected.
+
+Case ID: F-004
+Pattern: High non-linear deviation in V4 with abnormal timing
+Outcome: Confirmed fraud
+Action: Blocked
+Notes: Matches historical fraud cluster involving abnormal transaction flow.
+
+Case ID: F-005
+Pattern: Slight anomaly in one feature only
+Outcome: Legitimate transaction
+Action: Approved
+Notes: Single-feature deviation insufficient for fraud classification.

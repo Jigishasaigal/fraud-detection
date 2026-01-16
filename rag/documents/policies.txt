@@ -1,0 +1,15 @@
+Policy 1:
+Transactions showing abnormal latent behavior (e.g., V14, V12 anomalies)
+should be reviewed or blocked even if transaction amount is low.
+
+Policy 2:
+Low-value transactions with strong anomaly indicators may signal card testing fraud
+and require preventive blocking.
+
+Policy 3:
+Transactions classified as low risk with no anomaly indicators
+can be safely approved without manual review.
+
+Policy 4:
+Decision thresholds and risk categorization are optimized offline
+based on financial cost and operational constraints.
