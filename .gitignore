@@ -12,7 +12,6 @@ venv/
 
 # Datasets (CRITICAL)
 data/
-*.csv
 
 # Streamlit
 .streamlit/
