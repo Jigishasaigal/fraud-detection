@@ -17,6 +17,17 @@ app = FastAPI(
     title="Fraud Detection API"
 )
 
+# =========================
+# HOME ROUTE
+# =========================
+
+@app.get("/")
+def home():
+
+    return {
+        "message": "Fraud Detection API is running"
+    }
+
 # ---------------- MODEL ----------------
 
 model = joblib.load(

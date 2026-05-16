@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
 
-API = "http://127.0.0.1:8002"
+API = "https://fraud-detection-s8yy.onrender.com"
 
 # ---------------- AUTO REFRESH ----------------
 
