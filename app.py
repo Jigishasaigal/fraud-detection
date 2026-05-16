@@ -3,24 +3,28 @@ load_dotenv()
 
 import joblib
 import numpy as np
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List
 
-from rag.explain import (
-    retrieve_evidence,
-    generate_explanation,
-    generate_counterfactual_explanation,
-    answer_analyst_question,
-    confidence_label
+from utils.decision_trace import (
+    init_trace,
+    add_step
 )
 
-from utils.decision_trace import init_trace, add_step
+app = FastAPI(
+    title="Fraud Detection API"
+)
 
-app = FastAPI(title="Fraud Detection API")
-model = joblib.load("models/fraud_model.pkl")
+# ---------------- MODEL ----------------
 
-# ---------------- SCHEMAS ----------------
+model = joblib.load(
+    "models/fraud_model.pkl"
+)
+
+# ---------------- REQUEST SCHEMAS ----------------
+
 class Transaction(BaseModel):
     features: List[float]
 
@@ -28,105 +32,209 @@ class ExplainRequest(BaseModel):
     fraud_probability: float
     risk_label: str
     top_features: List[str]
-    decision_trace: Optional[Dict[str, Any]] = None
 
-class QARequest(ExplainRequest):
+class QARequest(BaseModel):
     question: str
+    fraud_probability: float
+    risk_label: str
+    top_features: List[str]
 
-# ---------------- PREDICT ----------------
+# =========================
+# PREDICT ENDPOINT
+# =========================
+
 @app.post("/predict")
 def predict(tx: Transaction):
+
     trace = init_trace()
 
-    X = np.array(tx.features).reshape(1, -1)
-    prob = float(model.predict_proba(X)[0][1])
+    X = np.array(
+        tx.features
+    ).reshape(1, -1)
 
-    if prob < 0.002:
-        risk, decision = "LOW RISK", "Approve"
-    elif prob < 0.01:
-        risk, decision = "MEDIUM RISK", "Review"
+    prob = model.predict_proba(X)[0][1]
+
+    add_step(
+        trace,
+        "Model Prediction",
+        {
+            "fraud_probability": float(prob)
+        }
+    )
+
+    if prob < 0.02:
+
+        risk = "LOW RISK"
+        decision = "Approve"
+
+    elif prob < 0.08:
+
+        risk = "MEDIUM RISK"
+        decision = "Review"
+
     else:
-        risk, decision = "HIGH RISK", "Block"
 
-    add_step(trace, "Model Prediction", {"fraud_probability": prob})
-    add_step(trace, "Risk & Decision Policy", {
-        "risk_label": risk,
-        "decision": decision
-    })
+        risk = "HIGH RISK"
+        decision = "Block"
 
-    trace["steps"] = sorted(trace["steps"], key=lambda x: x["order"])
+    add_step(
+        trace,
+        "Risk & Decision Policy",
+        {
+            "risk_label": risk,
+            "decision": decision
+        }
+    )
 
     return {
-        "fraud_probability": prob,
+        "fraud_probability": float(prob),
         "decision_trace": trace
     }
 
-# ---------------- EXPLAIN ----------------
+# =========================
+# EXPLAIN ENDPOINT
+# =========================
+
 @app.post("/explain")
 def explain(req: ExplainRequest):
-    trace = req.decision_trace or init_trace()
 
-    add_step(trace, "Input Context", {
-        "risk_label": req.risk_label,
-        "top_features": req.top_features
-    })
-
-    evidence = retrieve_evidence(req.fraud_probability, req.risk_label, req.top_features)
-    add_step(trace, "Evidence Retrieval", {"num_cases": len(evidence)})
-
-    explanation = generate_explanation(
-        req.fraud_probability, req.risk_label, req.top_features, evidence
+    from rag.explain import (
+        retrieve_evidence,
+        generate_explanation,
+        confidence_label
     )
 
-    add_step(trace, "Explanation Generated", {
-        "confidence": confidence_label(req.fraud_probability)
-    })
+    trace = init_trace()
 
-    trace["steps"] = sorted(trace["steps"], key=lambda x: x["order"])
+    add_step(
+        trace,
+        "Input Context",
+        {
+            "risk_label": req.risk_label,
+            "top_features": req.top_features
+        }
+    )
+
+    evidence = retrieve_evidence(
+        req.fraud_probability,
+        req.risk_label,
+        req.top_features
+    )
+
+    add_step(
+        trace,
+        "Evidence Retrieval",
+        {
+            "num_cases": len(evidence)
+        }
+    )
+
+    text = generate_explanation(
+        req.fraud_probability,
+        req.risk_label,
+        req.top_features,
+        evidence
+    )
+
+    add_step(
+        trace,
+        "Explanation Generated",
+        {
+            "confidence": confidence_label(
+                req.fraud_probability
+            )
+        }
+    )
 
     return {
-        "explanation": explanation,
+        "explanation": text,
         "decision_trace": trace
     }
 
-# ---------------- COUNTERFACTUAL ----------------
+# =========================
+# COUNTERFACTUAL ENDPOINT
+# =========================
+
 @app.post("/explain/counterfactual")
 def counterfactual(req: ExplainRequest):
-    trace = req.decision_trace or init_trace()
 
-    text = generate_counterfactual_explanation(
-        req.fraud_probability, req.risk_label, req.top_features, []
+    from rag.explain import (
+        retrieve_evidence,
+        generate_counterfactual_explanation
     )
 
-    add_step(trace, "Counterfactual Analysis", {
-        "summary": "Multi-feature anomalies required to change risk classification"
-    })
+    trace = init_trace()
 
-    trace["steps"] = sorted(trace["steps"], key=lambda x: x["order"])
+    evidence = retrieve_evidence(
+        req.fraud_probability,
+        req.risk_label,
+        req.top_features
+    )
+
+    text = generate_counterfactual_explanation(
+        req.fraud_probability,
+        req.risk_label,
+        req.top_features,
+        evidence
+    )
+
+    add_step(
+        trace,
+        "Counterfactual Analysis",
+        {
+            "summary":
+            "Multi-feature anomalies required to change risk classification"
+        }
+    )
 
     return {
         "counterfactual_explanation": text,
         "decision_trace": trace
     }
 
-# ---------------- ANALYST Q&A ----------------
+# =========================
+# ANALYST QA ENDPOINT
+# =========================
+
 @app.post("/explain/qa")
 def analyst_qa(req: QARequest):
-    trace = req.decision_trace or init_trace()
 
-    add_step(trace, "Analyst Question", {"question": req.question})
+    from rag.explain import (
+        retrieve_evidence,
+        answer_analyst_question
+    )
+
+    trace = init_trace()
+
+    add_step(
+        trace,
+        "Analyst Question",
+        {
+            "question": req.question
+        }
+    )
+
+    evidence = retrieve_evidence(
+        req.fraud_probability,
+        req.risk_label,
+        req.top_features
+    )
 
     answer = answer_analyst_question(
         req.question,
         req.fraud_probability,
         req.risk_label,
         req.top_features,
-        []
+        evidence
     )
 
-    add_step(trace, "Analyst Answer Generated", {"status": "answered"})
-
-    trace["steps"] = sorted(trace["steps"], key=lambda x: x["order"])
+    add_step(
+        trace,
+        "Analyst Answer Generated",
+        {
+            "status": "answered"
+        }
+    )
 
     return {
         "answer": answer,

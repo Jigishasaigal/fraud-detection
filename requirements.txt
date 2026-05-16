@@ -1,26 +1,16 @@
 fastapi
 uvicorn
 pydantic
-python-multipart
-
 numpy
+pandas
 scikit-learn
 lightgbm
 joblib
-
-shap
-
 faiss-cpu
 sentence-transformers
-
 groq
-
 python-dotenv
-
+plotly
 streamlit
-
+streamlit-autorefresh
 requests
-
- plotly
-
- streamlit-autorefresh
